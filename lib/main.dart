@@ -1,8 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
-import 'data/demo_repository.dart';
+import 'dropbox/dropbox_auth.dart';
+import 'estado.dart';
 
-void main() {
-  runApp(ObrasApp(repository: DemoRepository()));
+/// Clave pública de la app de Dropbox. Se pasa al compilar:
+/// `flutter build apk --dart-define=DROPBOX_APP_KEY=...`
+const dropboxAppKey = String.fromEnvironment('DROPBOX_APP_KEY');
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final estado = await Estado.cargar(
+    prefs: await SharedPreferences.getInstance(),
+    dropbox: dropboxAppKey.isEmpty ? null : DropboxAuth(appKey: dropboxAppKey),
+  );
+  runApp(ObrasApp(estado: estado));
 }

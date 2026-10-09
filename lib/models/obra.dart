@@ -30,18 +30,16 @@ class Documento {
   final bool esCarpeta;
 }
 
-/// Una entrada del registro de cambios de la obra (visible para todo el equipo).
-class Cambio {
-  const Cambio({
+/// Una nota o cambio de la obra, visible para todo el equipo.
+class Nota {
+  const Nota({
     required this.id,
-    required this.obraId,
     required this.texto,
     required this.autor,
     required this.fecha,
   });
 
   final String id;
-  final String obraId;
   final String texto;
   final String autor;
   final DateTime fecha;
@@ -68,12 +66,12 @@ class Correo {
   final String? obraId;
 
   Correo asignadoA(String obraId) => Correo(
-        id: id,
-        asunto: asunto,
-        remitente: remitente,
-        fecha: fecha,
-        extracto: extracto,
-        adjuntos: adjuntos,
-        obraId: obraId,
-      );
+    id: id,
+    asunto: asunto,
+    remitente: remitente,
+    fecha: fecha,
+    extracto: extracto,
+    adjuntos: adjuntos,
+    obraId: obraId,
+  );
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../data/repository_scope.dart';
 import 'ajustes_screen.dart';
 import 'obras_screen.dart';
 import 'sin_asignar_screen.dart';
@@ -17,31 +16,30 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final pendientes = RepositoryScope.of(context).sinAsignar.length;
     return Scaffold(
       body: IndexedStack(
         index: _seccion,
-        children: const [ObrasScreen(), SinAsignarScreen(), AjustesScreen()],
+        children: [
+          ObrasScreen(irAAjustes: () => setState(() => _seccion = 2)),
+          const SinAsignarScreen(),
+          const AjustesScreen(),
+        ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _seccion,
         onDestinationSelected: (i) => setState(() => _seccion = i),
-        destinations: [
-          const NavigationDestination(
+        destinations: const [
+          NavigationDestination(
             icon: Icon(Icons.apartment_outlined),
             selectedIcon: Icon(Icons.apartment),
             label: 'Obras',
           ),
           NavigationDestination(
-            icon: Badge(
-              isLabelVisible: pendientes > 0,
-              label: Text('$pendientes'),
-              child: const Icon(Icons.mark_email_unread_outlined),
-            ),
-            selectedIcon: const Icon(Icons.mark_email_unread),
+            icon: Icon(Icons.mark_email_unread_outlined),
+            selectedIcon: Icon(Icons.mark_email_unread),
             label: 'Sin asignar',
           ),
-          const NavigationDestination(
+          NavigationDestination(
             icon: Icon(Icons.settings_outlined),
             selectedIcon: Icon(Icons.settings),
             label: 'Ajustes',

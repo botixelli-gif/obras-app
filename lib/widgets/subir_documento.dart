@@ -5,9 +5,9 @@ import 'package:image_picker/image_picker.dart';
 import '../data/repository_scope.dart';
 import 'formato.dart';
 
-/// Pregunta si subir una foto o un archivo y lo sube a la carpeta de la obra.
-Future<void> subirDocumento(BuildContext context, String obraId) async {
-  final repo = RepositoryScope.of(context);
+/// Pregunta si subir una foto o un archivo y lo sube a [carpeta].
+Future<void> subirDocumento(BuildContext context, String carpeta) async {
+  final repo = RepositoryScope.read(context);
   final messenger = ScaffoldMessenger.of(context);
 
   final origen = await showModalBottomSheet<_Origen>(
@@ -43,8 +43,9 @@ Future<void> subirDocumento(BuildContext context, String obraId) async {
     case _Origen.camara:
     case _Origen.galeria:
       archivo = await ImagePicker().pickImage(
-        source:
-            origen == _Origen.camara ? ImageSource.camera : ImageSource.gallery,
+        source: origen == _Origen.camara
+            ? ImageSource.camera
+            : ImageSource.gallery,
         imageQuality: 85,
       );
       nombre = 'Foto ${_marcaTiempo(DateTime.now())}.jpg';
@@ -55,11 +56,16 @@ Future<void> subirDocumento(BuildContext context, String obraId) async {
   }
   if (archivo == null) return;
 
+  messenger.showSnackBar(SnackBar(content: Text('Subiendo $nombre…')));
   try {
-    await repo.subirDocumento(obraId, nombre, await archivo.readAsBytes());
-    messenger.showSnackBar(SnackBar(content: Text('Subido: $nombre')));
+    await repo.subir(carpeta, nombre, await archivo.readAsBytes());
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('Subido: $nombre')));
   } catch (e) {
-    messenger.showSnackBar(SnackBar(content: Text('No se pudo subir: $e')));
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('No se pudo subir: $e')));
   }
 }
 

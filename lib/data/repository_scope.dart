@@ -16,4 +16,11 @@ class RepositoryScope extends InheritedNotifier<ObrasRepository> {
     assert(scope != null, 'No hay RepositoryScope en el árbol');
     return scope!.notifier!;
   }
+
+  /// Igual que [of] pero sin redibujar al cambiar los datos (para acciones).
+  static ObrasRepository read(BuildContext context) {
+    final scope = context.getInheritedWidgetOfExactType<RepositoryScope>();
+    assert(scope != null, 'No hay RepositoryScope en el árbol');
+    return scope!.notifier!;
+  }
 }

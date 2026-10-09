@@ -1,95 +1,78 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/obra.dart';
-import 'obras_repository.dart';
+import 'stores.dart';
 
-/// Datos de ejemplo en memoria, para probar la app antes de conectar
-/// Dropbox, Firebase y Gmail.
-class DemoRepository extends ObrasRepository {
-  DemoRepository({DateTime? ahora}) : _ahora = ahora ?? DateTime.now() {
+/// Datos de ejemplo en memoria, para probar la app sin conectar nada.
+class DemoStore implements ObrasStore, CorreosStore {
+  DemoStore({DateTime? ahora}) : _ahora = ahora ?? DateTime.now() {
     _cargarEjemplo();
   }
 
   final DateTime _ahora;
   final List<Obra> _obras = [];
-  final Map<String, List<Documento>> _documentos = {};
-  final List<Cambio> _cambios = [];
+  final Map<String, List<Documento>> _carpetas = {};
+  final Map<String, List<Nota>> _notas = {};
   final List<Correo> _correos = [];
   int _siguienteId = 1;
 
   @override
-  String get origen => 'Modo demostración: datos de ejemplo';
+  Future<List<Obra>> obras() async => List.of(_obras);
 
   @override
-  List<Obra> get obras => List.unmodifiable(_obras);
+  Future<List<Documento>> carpeta(String ruta) async =>
+      ordenarDocumentos([...?_carpetas[ruta]]);
 
   @override
-  Obra? obra(String id) {
-    for (final o in _obras) {
-      if (o.id == id) return o;
-    }
-    return null;
+  Future<void> subir(String carpeta, String nombre, Uint8List contenido) async {
+    _carpetas
+        .putIfAbsent(carpeta, () => [])
+        .add(
+          Documento(
+            nombre: nombre,
+            ruta: '$carpeta/$nombre',
+            modificado: DateTime.now(),
+            bytes: contenido.length,
+          ),
+        );
   }
 
   @override
-  Future<List<Documento>> documentos(String obraId) async {
-    final lista = [...?_documentos[obraId]];
-    lista.sort((a, b) {
-      if (a.esCarpeta != b.esCarpeta) return a.esCarpeta ? -1 : 1;
-      return a.nombre.toLowerCase().compareTo(b.nombre.toLowerCase());
-    });
-    return lista;
+  Future<Uri> enlace(Documento documento) async =>
+      Uri.https('www.dropbox.com', '/home${documento.ruta}');
+
+  @override
+  Future<List<Nota>> notas(Obra obra) async =>
+      [...?_notas[obra.id]]..sort((a, b) => b.fecha.compareTo(a.fecha));
+
+  @override
+  Future<void> registrarNota(Obra obra, String texto, String autor) async {
+    _notas
+        .putIfAbsent(obra.id, () => [])
+        .add(
+          Nota(
+            id: 'c${_siguienteId++}',
+            texto: texto,
+            autor: autor.isEmpty ? 'Sin nombre' : autor,
+            fecha: DateTime.now(),
+          ),
+        );
   }
 
   @override
-  Future<void> subirDocumento(
-    String obraId,
-    String nombre,
-    Uint8List contenido,
-  ) async {
-    final obra = this.obra(obraId)!;
-    _documentos.putIfAbsent(obraId, () => []).add(Documento(
-          nombre: nombre,
-          ruta: '${obra.carpetaDropbox}/$nombre',
-          modificado: DateTime.now(),
-          bytes: contenido.length,
-        ));
-    notifyListeners();
-  }
-
-  @override
-  List<Cambio> cambios(String obraId) =>
-      _cambios.where((c) => c.obraId == obraId).toList()
+  Future<List<Correo>> correos(Obra obra) async =>
+      _correos.where((c) => c.obraId == obra.id).toList()
         ..sort((a, b) => b.fecha.compareTo(a.fecha));
 
   @override
-  Future<void> registrarCambio(String obraId, String texto) async {
-    _cambios.add(Cambio(
-      id: 'c${_siguienteId++}',
-      obraId: obraId,
-      texto: texto,
-      autor: 'Yo',
-      fecha: DateTime.now(),
-    ));
-    notifyListeners();
-  }
-
-  @override
-  List<Correo> correos(String obraId) =>
-      _correos.where((c) => c.obraId == obraId).toList()
-        ..sort((a, b) => b.fecha.compareTo(a.fecha));
-
-  @override
-  List<Correo> get sinAsignar =>
+  Future<List<Correo>> sinAsignar() async =>
       _correos.where((c) => c.obraId == null).toList()
         ..sort((a, b) => b.fecha.compareTo(a.fecha));
 
   @override
-  Future<void> vincularCorreo(String correoId, String obraId) async {
-    final i = _correos.indexWhere((c) => c.id == correoId);
-    if (i < 0) return;
-    _correos[i] = _correos[i].asignadoA(obraId);
-    notifyListeners();
+  Future<void> vincular(Correo correo, Obra obra) async {
+    final i = _correos.indexWhere((c) => c.id == correo.id);
+    if (i >= 0) _correos[i] = _correos[i].asignadoA(obra.id);
   }
 
   void _cargarEjemplo() {
@@ -101,13 +84,11 @@ class DemoRepository extends ObrasRepository {
         id: 'mayor12',
         nombre: 'Calle Mayor 12',
         carpetaDropbox: '/Obras/Calle Mayor 12',
-        direccion: 'C/ Mayor 12, bajo',
       ),
       Obra(
         id: 'nave-sur',
         nombre: 'Nave Polígono Sur',
         carpetaDropbox: '/Obras/Nave Polígono Sur',
-        direccion: 'Parcela 34, Polígono Sur',
       ),
       Obra(
         id: 'colegio',
@@ -116,7 +97,7 @@ class DemoRepository extends ObrasRepository {
       ),
     ]);
 
-    _documentos['mayor12'] = [
+    _carpetas['/Obras/Calle Mayor 12'] = [
       Documento(
         nombre: 'Planos',
         ruta: '/Obras/Calle Mayor 12/Planos',
@@ -136,7 +117,15 @@ class DemoRepository extends ObrasRepository {
         bytes: 1203344,
       ),
     ];
-    _documentos['nave-sur'] = [
+    _carpetas['/Obras/Calle Mayor 12/Planos'] = [
+      Documento(
+        nombre: 'Planta baja.pdf',
+        ruta: '/Obras/Calle Mayor 12/Planos/Planta baja.pdf',
+        modificado: hace(20),
+        bytes: 2203344,
+      ),
+    ];
+    _carpetas['/Obras/Nave Polígono Sur'] = [
       Documento(
         nombre: 'Estudio geotécnico.pdf',
         ruta: '/Obras/Nave Polígono Sur/Estudio geotécnico.pdf',
@@ -145,22 +134,20 @@ class DemoRepository extends ObrasRepository {
       ),
     ];
 
-    _cambios.addAll([
-      Cambio(
+    _notas['mayor12'] = [
+      Nota(
         id: 'c-ej1',
-        obraId: 'mayor12',
         texto: 'Se cambia el alicatado del baño 2 a gres porcelánico 60x60.',
         autor: 'Carlos',
         fecha: hace(2),
       ),
-      Cambio(
+      Nota(
         id: 'c-ej2',
-        obraId: 'mayor12',
         texto: 'Retraso de 3 días en la entrega de ventanas.',
         autor: 'Equipo',
         fecha: hace(6),
       ),
-    ]);
+    ];
 
     _correos.addAll([
       Correo(
@@ -190,3 +177,10 @@ class DemoRepository extends ObrasRepository {
     ]);
   }
 }
+
+/// Carpetas primero, luego archivos, cada grupo por nombre.
+List<Documento> ordenarDocumentos(List<Documento> docs) => docs
+  ..sort((a, b) {
+    if (a.esCarpeta != b.esCarpeta) return a.esCarpeta ? -1 : 1;
+    return a.nombre.toLowerCase().compareTo(b.nombre.toLowerCase());
+  });
