@@ -28,7 +28,7 @@ El plan completo está en el proyecto ("Plan de la app de obras").
 flutter pub get
 flutter analyze
 flutter test
-flutter run --dart-define=DROPBOX_APP_KEY=<app key>
+flutter run
 ```
 
 La app de Dropbox (dropbox.com/developers) debe tener permisos
@@ -36,9 +36,9 @@ La app de Dropbox (dropbox.com/developers) debe tener permisos
 Redirect URI `obrasapp://dropbox`.
 
 ## Compilación
-Cada cambio en `main` compila el APK de Android en GitHub Actions
-(pestaña *Actions* → última ejecución → *obras-android*). La clave de Dropbox
-se toma de la variable del repositorio `DROPBOX_APP_KEY`.
+Cada cambio en `main` compila el APK de Android en GitHub Actions y lo publica
+como versión. La última siempre está en:
+https://github.com/botixelli-gif/obras-app/releases/latest/download/obras.apk
 
 Para que las actualizaciones se instalen encima de la versión anterior, el APK
 debe firmarse siempre con la misma clave. Se configura con dos secretos del
